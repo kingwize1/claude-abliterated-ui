@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude-abliterated — Desktop Agentic AI Console & Launcher</title>
+  <style>
+    :root {
+      --bg-desk-1: #0b0f19;
+      --bg-desk-2: #141c2e;
+      --win-bg: rgba(17, 23, 38, 0.92);
+      --win-header: rgba(26, 34, 54, 0.95);
+      --win-border: rgba(148, 163, 184, 0.18);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #818cf8;
+      --success: #34d399;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --code-bg: #090d16;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--text-main);
+      background:
+        radial-gradient(circle at 18% 20%, rgba(56, 189, 248, 0.14), transparent 40%),
+        radial-gradient(circle at 82% 75%, rgba(129, 140, 248, 0.16), transparent 45%),
+        linear-gradient(135deg, var(--bg-desk-1) 0%, var(--bg-desk-2) 100%);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Desktop Top Bar */
+    .topbar {
+      height: 34px;
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--win-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      font-size: 12.5px;
+      z-index: 100;
+    }
+
+    .topbar-left, .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: 0.2px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .status-dot.offline {
+      background: var(--warn);
+      box-shadow: 0 0 8px var(--warn);
+    }
+
+    .topbar-badge {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .budget-meter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+    }
+
+    .budget-bar-wrap {
+      width: 90px;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .budget-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--success), var(--accent));
+      transition: width 0.25s ease;
+    }
+
+    /* Desktop Workspace Area */
+    .desktop-area {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 74px 1fr 410px;
+      gap: 12px;
+      padding: 12px;
+      overflow: hidden;
+      user-select: text;
+    }
+
+    @media (max-width: 1100px) {
+      .desktop-area {
+        grid-template-columns: 64px 1fr;
+      }
+      .side-window {
+        display: none;
+      }
+      .side-window.mobile-active {
+        display: flex;
+        position: fixed;
+        inset: 44px 12px 16px 84px;
+        z-index: 50;
+      }
+    }
+
+    /* Desktop Icons Column */
+    .desktop-icons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      padding-top: 4px;
+    }
+
+    .desk-icon {
+      width: 64px;
+      padding: 8px 4px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-main);
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .desk-icon:hover, .desk-icon.active {
+      background: rgba(56, 189, 248, 0.14);
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    .desk-icon-glyph {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(129, 140, 248, 0.22));
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .desk-icon-label {
+      font-size: 10.5px;
+      line-height: 1.2;
+      color: var(--text-main);
+      word-break: break-word;
+    }
+
+    /* Desktop Windows */
+    .desk-window {
+      background: var(--win-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--win-border);
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .win-titlebar {
+      height: 38px;
+      background: var(--win-header);
+      border-bottom: 1px solid var(--win-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      flex-shrink: 0;
+    }
+
+    .win-controls {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .win-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .win-dot.r { background: #ef4444; }
+    .win-dot.y { background: #f59e0b; }
+    .win-dot.g { background: #10b981; }
+
+    .win-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .win-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-xs {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--win-border);
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: all 0.15s;
+    }
+
+    .btn-xs:hover, .btn-xs.active {
+      color: var(--text-main);
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    /* Agentic Toolbar inside Main Window */
+    .agent-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(9, 13, 22, 0.55);
+      border-bottom: 1px solid var(--win-border);
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .select-ctrl, .input-ctrl {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--win-border);
+      color: var(--text-main);
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      outline: none;
+    }
+
+    .select-ctrl:focus, .input-ctrl:focus {
+      border-color: var(--accent);
+    }
+
+    /* Chat Stream Area */
+    .chat-viewport {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .msg-card {
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--win-border);
+      max-width: 92%;
+      line-height: 1.55;
+      font-size: 13.5px;
+    }
+
+    .msg-card.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(129, 140, 248, 0.18));
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    .msg-card.assistant {
+      align-self: flex-start;
+      background: rgba(9, 13, 22, 0.72);
+    }
+
+    .msg-card.system {
+      align-self: center;
+      max-width: 100%;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.65);
+      border-style: dashed;
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .msg-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .msg-role {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .msg-card.user .msg-role {
+      color: #a5b4fc;
+    }
+
+    .msg-body {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg-body code {
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12.5px;
+    }
+
+    .reasoning-box {
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      border-left: 2px solid var(--accent-2);
+      background: rgba(129, 140, 248, 0.08);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      border-radius: 0 6px 6px 0;
+      white-space: pre-wrap;
+    }
+
+    /* Agentic AI Input Box Dock */
+    .agent-input-dock {
+      padding: 12px 14px;
+      background: rgba(9, 13, 22, 0.85);
+      border-top: 1px solid var(--win-border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .quick-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip:hover {
+      background: rgba(56, 189, 248, 0.22);
+    }
+
+    .input-box-container {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 10px;
+      padding: 8px 10px;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08);
+    }
+
+    .input-box-container:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.22);
+    }
+
+    #agentPromptInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.45;
+      resize: none;
+      max-height: 140px;
+      min-height: 42px;
+      outline: none;
+    }
+
+    .btn-send {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #090d16;
+      font-weight: 700;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12.5px;
+      font-family: var(--font-mono);
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-send:hover {
+      opacity: 0.92;
+    }
+
+    .btn-send:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Right Side Window: Launcher & Config Tabs */
+    .side-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      font-size: 12.5px;
+    }
+
+    .panel-section {
+      background: rgba(9, 13, 22, 0.65);
+      border: 1px solid var(--win-border);
+      border-radius: 9px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 7px;
+      padding: 10px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: #e2e8f0;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.45;
+    }
+
+    .kv-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 10px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+    }
+
+    .kv-key { color: var(--text-muted); }
+    .kv-val { color: var(--text-main); font-weight: 600; }
+
+    .privacy-banner {
+      font-size: 11px;
+      color: var(--warn);
+      background: rgba(251, 191, 36, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      border-radius: 6px;
+      padding: 7px 9px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <!-- Desktop Top Bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="brand-pill">
+        <span id="connDot" class="status-dot offline"></span>
+        claude-abliterated Desktop
+      </span>
+      <span class="topbar-badge" id="activeModelBadge">abliterated-model-large-flash [1M]</span>
+      <span class="topbar-badge">CLAUDE_CONFIG_DIR=~/.claude-abliterated</span>
+    </div>
+    <div class="topbar-right">
+      <div class="budget-meter" title="Hard stop at $2.00 spend limit">
+        <span>Spend: <strong id="spendText">$0.000000</strong> / $2.00</span>
+        <div class="budget-bar-wrap">
+          <div id="budgetBarFill" class="budget-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Desktop Area -->
+  <main class="desktop-area">
+    <!-- Desktop Icons -->
+    <nav class="desktop-icons" aria-label="Desktop Shortcuts">
+      <button class="desk-icon active" id="iconAgent" onclick="focusPanel('agent')" title="Agentic AI Input Console">
+        <div class="desk-icon-glyph">&gt;_</div>
+        <span class="desk-icon-label">Agent Console</span>
+      </button>
+      <button class="desk-icon" id="iconLauncher" onclick="focusPanel('launcher')" title="claude-abliterated Launcher Scripts">
+        <div class="desk-icon-glyph">.cmd</div>
+        <span class="desk-icon-label">Launcher Code</span>
+      </button>
+      <button class="desk-icon" id="iconRea" onclick="focusPanel('rea')" title="REA Agents MCP Setup">
+        <div class="desk-icon-glyph">REA</div>
+        <span class="desk-icon-label">REA Setup</span>
+      </button>
+      <button class="desk-icon" id="iconLedger" onclick="focusPanel('ledger')" title="Token Cost & Budget Guard">
+        <div class="desk-icon-glyph">$$</div>
+        <span class="desk-icon-label">Spend Ledger</span>
+      </button>
+    </nav>
+
+    <!-- Primary Window: Agentic AI Console & Chat -->
+    <section class="desk-window" aria-label="Agentic AI Console">
+      <div class="win-titlebar">
+        <div class="win-controls">
+          <span class="win-dot r"></span>
+          <span class="win-dot y"></span>
+          <span class="win-dot g"></span>
+        </div>
+        <div class="win-title">
+          <span>claude-abliterated — Agentic AI Input &amp; Chat</span>
+        </div>
+        <div class="win-actions">
+          <button class="btn-xs" onclick="copyCliCommand()" title="Copy current prompt as claude-abliterated CLI command">Copy as CLI</button>
+          <button class="btn-xs" onclick="clearConversation()">Clear Chat</button>
+        </div>
+      </div>
+
+      <!-- Agentic Controls Bar -->
+      <div class="agent-toolbar">
+        <div class="toolbar-group">
+          <span class="toolbar-label">API Key</span>
+          <input
+            type="password"
+            id="apiKeyInput"
+            class="input-ctrl"
+            placeholder="ak_... (stored in browser only)"
+            style="width: 210px;"
+            autocomplete="off"
+          />
+          <button class="btn-xs" id="saveKeyBtn" onclick="saveLocalKey()">Connect</button>
+          <button class="btn-xs" onclick="clearLocalKey()">Forget</button>
+        </div>
+
+        <div class="toolbar-group">
+          <span class="toolbar-label">Model</span>
+          <select id="modelSelect" class="select-ctrl" onchange="updateModelBadge()">
+            <option value="abliterated-model-large-flash" selected>abliterated-model-large-flash (1M)</option>
+            <option value="abliterated-model-large-v2">abliterated-model-large-v2 (1M)</option>
+            <option value="abliterated-model">abliterated-model (262K)</option>
+          </select>
+
+          <span class="toolbar-label">Mode</span>
+          <select id="agentModeSelect" class="select-ctrl">
+            <option value="agentic" selected>Agentic Task Runner</option>
+            <option value="chat">Direct Uncensored Chat</option>
+            <option value="rea">REA Reverse-Engineer</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Conversation Stream -->
+      <div class="chat-viewport" id="chatViewport">
+        <div class="msg-card system">
+          <strong>claude-abliterated Desktop UI Ready.</strong><br />
+          • Routing to <code>https://api.abliteration.ai/v1/chat/completions</code> using <code>abliterated-model-large-flash</code>.<br />
+          • Your API key is never embedded in this site’s source code; enter your <code>ak_...</code> key above to run live agentic turns directly from your browser, or copy the launcher scripts on the right to run <code>claude-abliterated</code> locally in your terminal.<br />
+          • Hard budget stop is enforced at <strong>$2.00</strong> ($1.00/1M input, $0.10/1M cached input, $2.00/1M output).
+        </div>
+      </div>
+
+      <!-- Agentic AI Input Box -->
+      <div class="agent-input-dock">
+        <div class="quick-chips">
+          <button class="chip" onclick="fillPrompt('Reply with one word: PONG')">Test: PONG ($ cost check)</button>
+          <button class="chip" onclick="fillPrompt('Plan an agentic workflow to audit a web app and list SAW vs INFERRED behavioral evidence.')">Agentic Audit Plan</button>
+          <button class="chip" onclick="fillPrompt('Generate a single-file HTML clean-room rebuild spec with zero third-party dependencies.')">Clean-Room Spec</button>
+        </div>
+        <div class="input-box-container">
+          <textarea
+            id="agentPromptInput"
+            placeholder="Enter an agentic AI task or prompt for abliterated-model-large-flash... (Enter to send, Shift+Enter for newline)"
+            rows="2"
+          ></textarea>
+          <button class="btn-send" id="sendBtn" onclick="sendAgentTurn()">Run Agent ↵</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Window: claude-abliterated Launcher & Telemetry -->
+    <aside class="desk-window side-window" id="sideWindow" aria-label="Launcher & Telemetry Inspector">
+      <div class="win-titlebar">
+        <div class="win-controls">
+          <span class="win-dot r"></span>
+          <span class="win-dot y"></span>
+          <span class="win-dot g"></span>
+        </div>
+        <div class="win-title" id="sideWindowTitle">claude-abliterated Launcher</div>
+        <div class="win-actions">
+          <button class="btn-xs active" id="tabBtnWin" onclick="switchOsTab('win')">Windows</button>
+          <button class="btn-xs" id="tabBtnUnix" onclick="switchOsTab('unix')">macOS/Linux</button>
+        </div>
+      </div>
+
+      <div class="side-body">
+        <div class="privacy-banner">
+          <strong>Privacy &amp; Isolation Guard:</strong> Normal Claude Code (<code>~/.claude</code>) is untouched. Everything read by <code>claude-abliterated</code> goes to <code>abliteration.ai</code> — never pass private files.
+        </div>
+
+        <!-- Launcher Script Section -->
+        <div class="panel-section" id="secLauncher">
+          <div class="panel-title">
+            <span id="launcherFileTitle">1. Launcher: claude-abliterated.cmd</span>
+            <button class="btn-xs" onclick="copyCode('launcherCodeBlock')">Copy</button>
+          </div>
+          <pre class="code-block" id="launcherCodeBlock">@echo off
+setlocal
+set "PATH=%USERPROFILE%\.local\bin;%PATH%"
+set "CLAUDE_CONFIG_DIR=%USERPROFILE%\.claude-abliterated"
+set "ANTHROPIC_BASE_URL=https://api.abliteration.ai"
+set /p ANTHROPIC_AUTH_TOKEN=&lt;"%USERPROFILE%\.claude-abliterated\api_key"
+set "ANTHROPIC_MODEL=abliterated-model-large-flash"
+set "ANTHROPIC_DEFAULT_OPUS_MODEL=abliterated-model-large-flash"
+set "ANTHROPIC_DEFAULT_SONNET_MODEL=abliterated-model-large-flash"
+set "ANTHROPIC_DEFAULT_HAIKU_MODEL=abliterated-model-large-flash"
+set "CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576"
+"%USERPROFILE%\.local\bin\claude.exe" %*</pre>
+        </div>
+
+        <!-- User-Only Key Storage Section -->
+        <div class="panel-section" id="secKey">
+          <div class="panel-title">
+            <span>2. User-Only Key Permission (No Echo)</span>
+            <button class="btn-xs" onclick="copyCode('keySetupCodeBlock')">Copy</button>
+          </div>
+          <pre class="code-block" id="keySetupCodeBlock">mkdir "%USERPROFILE%\.claude-abliterated"
+icacls "%USERPROFILE%\.claude-abliterated\api_key" /inheritance:r /grant:r "%USERNAME%:(F)"</pre>
+        </div>
+
+        <!-- Scoped REA Agents Setup -->
+        <div class="panel-section" id="secRea">
+          <div class="panel-title">
+            <span>3. Scoped npx rea-agents setup</span>
+            <button class="btn-xs" onclick="copyCode('reaCodeBlock')">Copy</button>
+          </div>
+          <pre class="code-block" id="reaCodeBlock">$env:CLAUDE_CONFIG_DIR = "$HOME\.claude-abliterated"
+npx rea-agents setup --client claude_code --skill-client claude_code --yes</pre>
+        </div>
+
+        <!-- Cost & Usage Ledger -->
+        <div class="panel-section" id="secLedger">
+          <div class="panel-title">
+            <span>4. Session Spend &amp; Token Ledger</span>
+            <button class="btn-xs" onclick="resetLedger()">Reset</button>
+          </div>
+          <div class="kv-grid">
+            <span class="kv-key">Model Rate (Input / 1M):</span>
+            <span class="kv-val" id="rateIn">$1.00</span>
+            <span class="kv-key">Model Rate (Cached / 1M):</span>
+            <span class="kv-val" id="rateCached">$0.10</span>
+            <span class="kv-key">Model Rate (Output / 1M):</span>
+            <span class="kv-val" id="rateOut">$2.00</span>
+            <span class="kv-key">Input Tokens:</span>
+            <span class="kv-val" id="totInTokens">0</span>
+            <span class="kv-key">Cached Input Tokens:</span>
+            <span class="kv-val" id="totCachedTokens">0</span>
+            <span class="kv-key">Output Tokens:</span>
+            <span class="kv-val" id="totOutTokens">0</span>
+            <span class="kv-key">Last Turn Cost:</span>
+            <span class="kv-val" id="lastTurnCost">$0.000000</span>
+            <span class="kv-key">Total Spend (Cap $2.00):</span>
+            <span class="kv-val" id="totSpendVal">$0.000000</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const MODEL_PRICING = {
+      'abliterated-model-large-flash': { inPerM: 1.00, cachedPerM: 0.10, outPerM: 2.00, ctx: '1M' },
+      'abliterated-model-large-v2': { inPerM: 3.00, cachedPerM: 0.30, outPerM: 5.00, ctx: '1M' },
+      'abliterated-model': { inPerM: 1.00, cachedPerM: 0.10, outPerM: 3.00, ctx: '262K' }
+    };
+
+    const SYSTEM_PROMPTS = {
+      agentic: 'You are claude-abliterated, an uncensored agentic coding and systems assistant running on abliterated-model-large-flash. Break tasks into clear, verifiable steps and execute directly.',
+      chat: 'You are claude-abliterated running on abliterated-model-large-flash. Respond directly, concisely, and accurately without unnecessary refusals.',
+      rea: 'You are claude-abliterated configured with rea-agents MCP tools. Classify every behavioral observation strictly as SAW (directly observed with evidence) or INFERRED.'
+    };
+
+    const BUDGET_CAP_USD = 2.00;
+    const STORAGE_KEY_API = 'abliteration_local_api_key';
+    const STORAGE_KEY_LEDGER = 'abliteration_spend_ledger_v1';
+
+    let conversation = [];
+    let ledger = {
+      inTokens: 0,
+      cachedTokens: 0,
+      outTokens: 0,
+      lastCost: 0,
+      totalCost: 0
+    };
+
+    const WIN_LAUNCHER = `@echo off
+setlocal
+set "PATH=%USERPROFILE%\\.local\\bin;%PATH%"
+set "CLAUDE_CONFIG_DIR=%USERPROFILE%\\.claude-abliterated"
+set "ANTHROPIC_BASE_URL=https://api.abliteration.ai"
+set /p ANTHROPIC_AUTH_TOKEN=<"%USERPROFILE%\\.claude-abliterated\\api_key"
+set "ANTHROPIC_MODEL=abliterated-model-large-flash"
+set "ANTHROPIC_DEFAULT_OPUS_MODEL=abliterated-model-large-flash"
+set "ANTHROPIC_DEFAULT_SONNET_MODEL=abliterated-model-large-flash"
+set "ANTHROPIC_DEFAULT_HAIKU_MODEL=abliterated-model-large-flash"
+set "CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576"
+"%USERPROFILE%\\.local\\bin\\claude.exe" %*`;
+
+    const UNIX_LAUNCHER = `#!/usr/bin/env bash
+export CLAUDE_CONFIG_DIR="$HOME/.claude-abliterated"
+export ANTHROPIC_BASE_URL="https://api.abliteration.ai"
+export ANTHROPIC_AUTH_TOKEN="$(cat "$HOME/.claude-abliterated/api_key")"
+export ANTHROPIC_MODEL="abliterated-model-large-flash"
+export ANTHROPIC_DEFAULT_OPUS_MODEL="abliterated-model-large-flash"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="abliterated-model-large-flash"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="abliterated-model-large-flash"
+export CLAUDE_CODE_MAX_CONTEXT_TOKENS="1048576"
+exec claude "$@"`;
+
+    function initApp() {
+      const savedKey = localStorage.getItem(STORAGE_KEY_API);
+      if (savedKey) {
+        document.getElementById('apiKeyInput').value = savedKey;
+        setConnectedState(true);
+      }
+      const savedLedger = localStorage.getItem(STORAGE_KEY_LEDGER);
+      if (savedLedger) {
+        try {
+          ledger = { ...ledger, ...JSON.parse(savedLedger) };
+        } catch (_) {}
+      }
+      updateModelBadge();
+      renderLedger();
+
+      const input = document.getElementById('agentPromptInput');
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendAgentTurn();
+        }
+      });
+    }
+
+    function setConnectedState(connected) {
+      const dot = document.getElementById('connDot');
+      if (connected) {
+        dot.classList.remove('offline');
+      } else {
+        dot.classList.add('offline');
+      }
+    }
+
+    function saveLocalKey() {
+      const val = document.getElementById('apiKeyInput').value.trim();
+      if (!val) return;
+      localStorage.setItem(STORAGE_KEY_API, val);
+      setConnectedState(true);
+      appendSystemNote('API key saved in browser localStorage (never transmitted except to api.abliteration.ai).');
+    }
+
+    function clearLocalKey() {
+      localStorage.removeItem(STORAGE_KEY_API);
+      document.getElementById('apiKeyInput').value = '';
+      setConnectedState(false);
+      appendSystemNote('API key cleared from browser storage.');
+    }
+
+    function updateModelBadge() {
+      const model = document.getElementById('modelSelect').value;
+      const info = MODEL_PRICING[model] || MODEL_PRICING['abliterated-model-large-flash'];
+      document.getElementById('activeModelBadge').textContent = `${model} [${info.ctx}]`;
+      document.getElementById('rateIn').textContent = `$${info.inPerM.toFixed(2)}`;
+      document.getElementById('rateCached').textContent = `$${info.cachedPerM.toFixed(2)}`;
+      document.getElementById('rateOut').textContent = `$${info.outPerM.toFixed(2)}`;
+    }
+
+    function switchOsTab(os) {
+      const winBtn = document.getElementById('tabBtnWin');
+      const unixBtn = document.getElementById('tabBtnUnix');
+      const title = document.getElementById('launcherFileTitle');
+      const code = document.getElementById('launcherCodeBlock');
+      const keyBlock = document.getElementById('keySetupCodeBlock');
+      const reaBlock = document.getElementById('reaCodeBlock');
+
+      if (os === 'win') {
+        winBtn.classList.add('active');
+        unixBtn.classList.remove('active');
+        title.textContent = '1. Launcher: claude-abliterated.cmd';
+        code.textContent = WIN_LAUNCHER;
+        keyBlock.textContent = `mkdir "%USERPROFILE%\\.claude-abliterated"\nicacls "%USERPROFILE%\\.claude-abliterated\\api_key" /inheritance:r /grant:r "%USERNAME%:(F)"`;
+        reaBlock.textContent = `$env:CLAUDE_CONFIG_DIR = "$HOME\\.claude-abliterated"\nnpx rea-agents setup --client claude_code --skill-client claude_code --yes`;
+      } else {
+        unixBtn.classList.add('active');
+        winBtn.classList.remove('active');
+        title.textContent = '1. Launcher: ~/.local/bin/claude-abliterated';
+        code.textContent = UNIX_LAUNCHER;
+        keyBlock.textContent = `mkdir -p ~/.claude-abliterated && chmod 700 ~/.claude-abliterated\nchmod 600 ~/.claude-abliterated/api_key`;
+        reaBlock.textContent = `CLAUDE_CONFIG_DIR="$HOME/.claude-abliterated" \\\n  npx rea-agents setup --client claude_code --skill-client claude_code --yes`;
+      }
+    }
+
+    function focusPanel(panel) {
+      document.querySelectorAll('.desk-icon').forEach((el) => el.classList.remove('active'));
+      const map = { agent: 'iconAgent', launcher: 'iconLauncher', rea: 'iconRea', ledger: 'iconLedger' };
+      if (map[panel]) document.getElementById(map[panel]).classList.add('active');
+
+      const secMap = { launcher: 'secLauncher', rea: 'secRea', ledger: 'secLedger' };
+      if (secMap[panel]) {
+        const target = document.getElementById(secMap[panel]);
+        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      if (panel === 'agent') {
+        document.getElementById('agentPromptInput').focus();
+      }
+    }
+
+    function fillPrompt(text) {
+      const input = document.getElementById('agentPromptInput');
+      input.value = text;
+      input.focus();
+    }
+
+    function copyCode(id) {
+      const text = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(text);
+    }
+
+    function copyCliCommand() {
+      const prompt = document.getElementById('agentPromptInput').value.trim() || 'Reply with one word: PONG';
+      const escaped = prompt.replace(/"/g, '\\"');
+      navigator.clipboard.writeText(`claude-abliterated -p "${escaped}"`);
+      appendSystemNote('Copied equivalent `claude-abliterated -p "..."` CLI command to clipboard.');
+    }
+
+    function clearConversation() {
+      conversation = [];
+      const viewport = document.getElementById('chatViewport');
+      viewport.innerHTML = '';
+      appendSystemNote('Conversation cleared.');
+    }
+
+    function resetLedger() {
+      ledger = { inTokens: 0, cachedTokens: 0, outTokens: 0, lastCost: 0, totalCost: 0 };
+      localStorage.setItem(STORAGE_KEY_LEDGER, JSON.stringify(ledger));
+      renderLedger();
+    }
+
+    function renderLedger() {
+      document.getElementById('totInTokens').textContent = ledger.inTokens.toLocaleString();
+      document.getElementById('totCachedTokens').textContent = ledger.cachedTokens.toLocaleString();
+      document.getElementById('totOutTokens').textContent = ledger.outTokens.toLocaleString();
+      document.getElementById('lastTurnCost').textContent = `$${ledger.lastCost.toFixed(6)}`;
+      document.getElementById('totSpendVal').textContent = `$${ledger.totalCost.toFixed(6)}`;
+      document.getElementById('spendText').textContent = `$${ledger.totalCost.toFixed(6)}`;
+
+      const pct = Math.min(100, (ledger.totalCost / BUDGET_CAP_USD) * 100);
+      const fill = document.getElementById('budgetBarFill');
+      fill.style.width = `${pct}%`;
+      if (ledger.totalCost >= BUDGET_CAP_USD) {
+        fill.style.background = 'var(--danger)';
+      }
+    }
+
+    function appendSystemNote(text) {
+      const viewport = document.getElementById('chatViewport');
+      const div = document.createElement('div');
+      div.className = 'msg-card system';
+      div.textContent = text;
+      viewport.appendChild(div);
+      viewport.scrollTop = viewport.scrollHeight;
+    }
+
+    function createMessageCard(role, modelLabel) {
+      const viewport = document.getElementById('chatViewport');
+      const card = document.createElement('div');
+      card.className = `msg-card ${role}`;
+
+      const header = document.createElement('div');
+      header.className = 'msg-header';
+
+      const roleSpan = document.createElement('span');
+      roleSpan.className = 'msg-role';
+      roleSpan.textContent = role === 'user' ? 'USER_PROMPT' : `AGENT (${modelLabel})`;
+
+      const metaSpan = document.createElement('span');
+      metaSpan.className = 'msg-meta';
+      metaSpan.textContent = new Date().toLocaleTimeString();
+
+      header.appendChild(roleSpan);
+      header.appendChild(metaSpan);
+
+      const reasoningDiv = document.createElement('div');
+      reasoningDiv.className = 'reasoning-box';
+      reasoningDiv.style.display = 'none';
+
+      const body = document.createElement('div');
+      body.className = 'msg-body';
+
+      card.appendChild(header);
+      card.appendChild(reasoningDiv);
+      card.appendChild(body);
+      viewport.appendChild(card);
+      viewport.scrollTop = viewport.scrollHeight;
+
+      return { card, body, reasoningDiv, metaSpan };
+    }
+
+    async function sendAgentTurn() {
+      if (ledger.totalCost >= BUDGET_CAP_USD) {
+        appendSystemNote('Hard budget limit of $2.00 reached. Reset the ledger if you wish to continue.');
+        return;
+      }
+
+      const input = document.getElementById('agentPromptInput');
+      const prompt = input.value.trim();
+      if (!prompt) return;
+
+      const apiKey = (document.getElementById('apiKeyInput').value.trim() || localStorage.getItem(STORAGE_KEY_API) || '').trim();
+      if (!apiKey) {
+        appendSystemNote('Please enter your abliteration.ai API key (ak_...) in the top toolbar first, or run via the local claude-abliterated CLI launcher.');
+        document.getElementById('apiKeyInput').focus();
+        return;
+      }
+
+      localStorage.setItem(STORAGE_KEY_API, apiKey);
+      setConnectedState(true);
+
+      const model = document.getElementById('modelSelect').value;
+      const mode = document.getElementById('agentModeSelect').value;
+      const pricing = MODEL_PRICING[model] || MODEL_PRICING['abliterated-model-large-flash'];
+
+      input.value = '';
+      const userCard = createMessageCard('user', model);
+      userCard.body.textContent = prompt;
+
+      conversation.push({ role: 'user', content: prompt });
+
+      const sendBtn = document.getElementById('sendBtn');
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Running...';
+
+      const assistantCard = createMessageCard('assistant', model);
+      assistantCard.body.textContent = 'Connecting to api.abliteration.ai...';
+
+      try {
+        const messagesPayload = [
+          { role: 'system', content: SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.agentic },
+          ...conversation
+        ];
+
+        const response = await fetch('https://api.abliteration.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: messagesPayload,
+            stream: false
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          const errMsg = data?.error?.message || JSON.stringify(data);
+          assistantCard.body.textContent = `API Error (${response.status}): ${errMsg}`;
+          return;
+        }
+
+        const choice = data.choices?.[0]?.message || {};
+        const content = choice.content || '';
+        const reasoning = choice.reasoning_content || choice.reasoning || '';
+
+        if (reasoning) {
+          assistantCard.reasoningDiv.style.display = 'block';
+          assistantCard.reasoningDiv.textContent = `[Reasoning]\n${reasoning}`;
+        }
+        assistantCard.body.textContent = content || '(empty response)';
+        conversation.push({ role: 'assistant', content });
+
+        // Compute exact cost from usage block
+        const usage = data.usage || {};
+        const promptTokens = Number(usage.prompt_tokens || usage.input_tokens || 0);
+        const cachedTokens = Number(
+          usage.prompt_tokens_details?.cached_tokens ||
+          usage.cache_read_input_tokens ||
+          0
+        );
+        const uncachedIn = Math.max(0, promptTokens - cachedTokens);
+        const outTokens = Number(usage.completion_tokens || usage.output_tokens || 0);
+
+        const turnCost =
+          (uncachedIn / 1_000_000) * pricing.inPerM +
+          (cachedTokens / 1_000_000) * pricing.cachedPerM +
+          (outTokens / 1_000_000) * pricing.outPerM;
+
+        ledger.inTokens += uncachedIn;
+        ledger.cachedTokens += cachedTokens;
+        ledger.outTokens += outTokens;
+        ledger.lastCost = turnCost;
+        ledger.totalCost += turnCost;
+        localStorage.setItem(STORAGE_KEY_LEDGER, JSON.stringify(ledger));
+        renderLedger();
+
+        assistantCard.metaSpan.textContent = `in: ${uncachedIn} (cached: ${cachedTokens}) | out: ${outTokens} | cost: $${turnCost.toFixed(6)}`;
+      } catch (err) {
+        assistantCard.body.textContent = `Network / Fetch Error: ${err.message}`;
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Run Agent ↵';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
